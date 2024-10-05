@@ -43,13 +43,13 @@ struct Article {
     // Função para formatar o artigo como string
     std::string toString() const {
         std::stringstream ss;
-        ss << id << ";" 
-           << title << ";" 
-           << year << ";" 
-           << authors << ";" 
-           << citations << ";" 
-           << updated_at << ";" 
-           << snippet;
+        ss << "Id: " << id << " | " 
+           << "Titulo: " <<title << " | " 
+           << "Ano: " << year << " | " 
+           << "Autor: " << authors << " | "  
+           << "Citacao: " <<citations << " | " 
+           << "Atualizacao: "  << updated_at << " | " 
+           << "Snippet: " << snippet << " | ";
         return ss.str();
     }
 };
