@@ -131,20 +131,13 @@ void upload(const std::string& file_path, const std::string& output_path) {
 }
 
 int main(int argc, char* argv[]) {
-    if (argc != 3) {
-        std::cerr << "Usage: " << argv[0] << " upload <file>" << std::endl;
+    if (argc != 2) {
+        std::cerr << "Usage: " << argv[0] << " <file>" << std::endl;
         return 1;
     }
+    std::string file_path = argv[1];
 
-    std::string command = argv[1];
-    std::string file_path = argv[2];
+    upload(file_path, "articles.txt"); // Saída em um arquivo de texto
+    std::cout << "Upload completed successfully!" << std::endl;
 
-    if (command == "upload") {
-        upload(file_path, "articles.txt"); // Saída em um arquivo de texto
-        std::cout << "Upload completed successfully!" << std::endl;
-    } else {
-        std::cerr << "Unknown command!" << std::endl;
-    }
-
-    return 0;
 }
