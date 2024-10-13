@@ -9,6 +9,10 @@
 #define BLOCK_SIZE 4096 // 4KB por bloco
 #define BLOCKS_PER_BUCKET 10
 
+
+struct BlockHeader {
+    int recordCount;
+};
 // Estrutura que representa um artigo
 struct Article {
     int id;
@@ -30,10 +34,7 @@ struct Article {
 };
 #define RECORDS_PER_BLOCK (BLOCK_SIZE / sizeof(Article))
 
-// Estrutura que representa o cabeçalho de um bloco
-struct BlockHeader {
-    int recordCount;
-};
+
 
 // Funções de manipulação
 int hashFunction(int id);

@@ -15,9 +15,6 @@
 #include "HashUpload.h"
 
 
-struct BlockHeader {
-    int recordCount;
-};
 
 // Função de hash simples
 int hashFunction(int id) {
