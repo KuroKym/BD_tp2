@@ -6,15 +6,13 @@
 #include <ctime>
 #include <cstring>
 #include <algorithm>
+#include "HashUpload.h"
 
-// Definições de constantes
+/* #defines foram definidos no .h
 #define NUM_BUCKETS 100
 #define BLOCK_SIZE 4096 // 4KB por bloco
 #define RECORDS_PER_BLOCK (BLOCK_SIZE / sizeof(Article))
-#define BLOCKS_PER_BUCKET 10
-#include "HashUpload.h"
-
-
+#define BLOCKS_PER_BUCKET 10*/
 
 // Função de hash simples
 int hashFunction(int id) {
@@ -166,7 +164,7 @@ void insertRecord(const Article& article, const std::string& bucket_filename, co
     bool inserted = false;
 
     for (int block = 0; block < BLOCKS_PER_BUCKET; ++block) {
-        std::streampos block_pos = bucket_start + block * BLOCK_SIZE;
+        std::streampos block_pos = bucket_start + static_cast<std::streamoff>(block * BLOCK_SIZE);
         file.seekg(block_pos);
         
         // Ler o cabeçalho do bloco
@@ -175,7 +173,7 @@ void insertRecord(const Article& article, const std::string& bucket_filename, co
 
         if (header.recordCount < RECORDS_PER_BLOCK) {
             // Inserir o registro neste bloco
-            std::streampos write_pos = block_pos + sizeof(BlockHeader) + header.recordCount * sizeof(Article);
+            std::streampos write_pos = block_pos + static_cast<std::streamoff>(sizeof(BlockHeader)) + static_cast<std::streamoff>(header.recordCount * sizeof(Article));
             file.seekp(write_pos);
             file.write(reinterpret_cast<const char*>(&article), sizeof(Article));
 
@@ -224,7 +222,7 @@ std::vector<Article> readBucket(int bucket, const std::string& bucket_filename, 
     std::streampos bucket_start = bucket * BLOCKS_PER_BUCKET * BLOCK_SIZE;
 
     for (int block = 0; block < BLOCKS_PER_BUCKET; ++block) {
-        std::streampos block_pos = bucket_start + block * BLOCK_SIZE;
+        std::streampos block_pos = bucket_start + static_cast<std::streamoff>(block * BLOCK_SIZE);
         file.seekg(block_pos);
 
         // Ler o cabeçalho do bloco
