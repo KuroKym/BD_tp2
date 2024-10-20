@@ -7,13 +7,6 @@
 #include <cstring>
 #include <algorithm>
 #include "HashUpload.h"
-#include "btree.cpp"
-
-/* #defines foram definidos no .hb
-#define NUM_BUCKETS 100
-#define BLOCK_SIZE 4096 // 4KB por bloco
-#define RECORDS_PER_BLOCK (BLOCK_SIZE / sizeof(Article))
-#define BLOCKS_PER_BUCKET 10*/
 
 // Função de hash simples
 int hashFunction(int id) {
@@ -204,22 +197,17 @@ void insertRecord(const Article& article, const std::string& bucket_filename, co
 
 
 // Função para gravar todos os artigos utilizando hash
-void gravarArtigosComHash(const std::vector<Article>& articles, const std::string& bucket_filename, const std::string& overflow_filename, const std::string& index_filename) {
-    // Apaga o arquivo de overflow, se já existir, para recriá-lo
-    std::ofstream overflow_file(overflow_filename, std::ios::binary | std::ios::trunc);
-    if (!overflow_file.is_open()) {
-        std::cerr << "Erro ao abrir o arquivo de overflow para sobrescrever!" << std::endl;
-        return;
-    }
-    overflow_file.close();  // Fechar, pois apenas criamos o arquivo vazio
-
+void gravarArtigosComHash(const std::vector<Article>& articles, const std::string& bucket_filename, const std::string& overflow_filename) {
+    // Itera sobre todos os artigos e insere cada um no bucket correspondente
     for (const auto& article : articles) {
         insertRecord(article, bucket_filename, overflow_filename);
     }
 
-    // Gerar os índices primários após inserir os artigos
-    gerarIndicesPrimarios(articles, index_filename);
+    // (Opcional) Você pode implementar aqui a lógica para criar um índice, se necessário
+    // Para isso, seria necessário adicionar o código para criar e gravar o índice no arquivo index_filename
+    // A implementação do índice depende da estrutura de dados que você deseja usar (por exemplo, B-tree, árvore de pesquisa, etc.)
 }
+
 
 
 // Função para ler registros de um bucket específico
@@ -265,48 +253,3 @@ std::vector<Article> readBucket(int bucket, const std::string& bucket_filename, 
     return articles;
 }
 
-
-// Função para gerar o arquivo de índices primários usando a B+ Tree
-// Função para gerar o arquivo de índices primários usando a B+ Tree
-void gerarIndicesPrimarios(const std::vector<Article>& articles, const std::string& bucket_filename, const std::string& index_filename) {
-    BPlusTree btree;
-
-    // Inserir os IDs dos artigos na B+ Tree com o endereço do bloco
-    for (const auto& article : articles) {
-        int bucket = hashFunction(article.id);
-        std::streampos bucket_start = bucket * BLOCKS_PER_BUCKET * BLOCK_SIZE;
-
-        // Calcula o endereço do bloco onde o artigo está armazenado
-        for (int block = 0; block < BLOCKS_PER_BUCKET; ++block) {
-            std::streampos block_pos = bucket_start + static_cast<std::streamoff>(block * BLOCK_SIZE);
-            Block current_block;
-
-            // Ler o bloco para verificar se o artigo está presente
-            std::ifstream file(bucket_filename, std::ios::binary);
-            file.seekg(block_pos);
-            file.read(reinterpret_cast<char*>(&current_block), sizeof(Block));
-
-            // Verifica se o artigo está no bloco
-            for (int i = 0; i < current_block.header.recordCount; ++i) {
-                if (current_block.records[i].id == article.id) {
-                    // Inserir na B+ Tree: chave (ID) e endereço (posição do bloco)
-                    btree.insert(article.id, block_pos);
-                    break;
-                }
-            }
-            file.close();
-        }
-    }
-
-    // Salvar a árvore B+ em um arquivo
-    std::ofstream index_file(index_filename, std::ios::binary);
-    if (!index_file.is_open()) {
-        std::cerr << "Erro ao abrir o arquivo de índices primários para gravação!" << std::endl;
-        return;
-    }
-
-    // Aqui você pode implementar a lógica para gravar a B+ Tree no arquivo
-    btree.save(index_file); // Supondo que você tenha uma função para salvar a B+ Tree
-
-    index_file.close();
-}

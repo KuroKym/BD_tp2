@@ -1,120 +1,141 @@
-// btree.cpp
-#include <iostream>
-#include <fstream>
 #include <vector>
+#include <iostream>
 #include <memory>
-#include <algorithm>
 
-const int MAX_KEYS = 3; // Número máximo de chaves por nó
-
-struct BPlusTreeNode {
-    bool isLeaf;
-    std::vector<int> keys; // Chaves
-    std::vector<std::shared_ptr<BPlusTreeNode>> children; // Filhos
-
-    BPlusTreeNode(bool isLeaf) : isLeaf(isLeaf) {}
-};
-
-// Classe que representa a B+ Tree
+template <typename Key>
 class BPlusTree {
-public:
-    BPlusTree() : root(std::make_shared<BPlusTreeNode>(true)) {}
-
-    void insert(int key);
-    void print() const;
-
 private:
-    std::shared_ptr<BPlusTreeNode> root;
+    struct Nozin {
+        bool isLeaf;
+        std::vector<Key> keys;
+        void** ponteiros; // Mudança para ponteiros genéricos
+        Nozin* pae;
+        int numKeys;
 
-    void insertNonFull(std::shared_ptr<BPlusTreeNode> node, int key);
-    void splitChild(std::shared_ptr<BPlusTreeNode> parent, int index);
-    void printNode(const std::shared_ptr<BPlusTreeNode>& node, int depth) const;
+        Nozin(bool leaf) : isLeaf(leaf), numKeys(0) {
+            keys.resize(2); // Capacidade inicial
+            ponteiros = new void*[3]; // Capacidade inicial
+        }
+
+        ~Nozin() {
+            delete[] ponteiros; // Liberar a memória alocada para ponteiros
+        }
+    };
+
+    Nozin* root;
+
+public:
+    struct Block { // Tornar público
+        int endereco;
+    };
+
+    BPlusTree() : root(nullptr) {}
+
+    void insert(Key key, Block* bloco);
+    void display(Nozin* no, int level = 0);
+    Nozin* getRoot() { return root; }
+    void insertNonFull(Nozin* no, Key key, Block* bloco);
+    void splitChild(Nozin* parent, int index, Nozin* child);
 };
 
-// Função para inserir uma chave na B+ Tree
-void BPlusTree::insert(int key) {
-    if (root->keys.size() == MAX_KEYS) {
-        // Criar um novo nó raiz
-        auto newRoot = std::make_shared<BPlusTreeNode>(false);
-        newRoot->children.push_back(root);
-        splitChild(newRoot, 0);
-        root = newRoot;
-    }
-    insertNonFull(root, key);
-}
-
-// Inserir uma chave em um nó que não está cheio
-void BPlusTree::insertNonFull(std::shared_ptr<BPlusTreeNode> node, int key) {
-    if (node->isLeaf) {
-        node->keys.push_back(key);
-        std::sort(node->keys.begin(), node->keys.end()); // Ordenar as chaves
+template <typename Key>
+void BPlusTree<Key>::insert(Key key, Block* bloco) {
+    if (root == nullptr) {
+        // Criar a raiz se não existir
+        root = new Nozin(true);
+        root->keys[0] = key;
+        root->ponteiros[0] = bloco; // Usar ponteiros para armazenar o bloco
+        root->numKeys = 1;
     } else {
-        int i = node->keys.size() - 1;
-        while (i >= 0 && key < node->keys[i]) {
-            --i;
+        if (root->numKeys == 2) { // Se a raiz está cheia
+            Nozin* newRoot = new Nozin(false);
+            newRoot->ponteiros[0] = root;
+            splitChild(newRoot, 0, root);
+            root = newRoot;
+            insertNonFull(root, key, bloco);
+        } else {
+            insertNonFull(root, key, bloco);
         }
-        ++i;
-        if (node->children[i]->keys.size() == MAX_KEYS) {
-            splitChild(node, i);
-            if (key > node->keys[i]) {
-                ++i;
-            }
-        }
-        insertNonFull(node->children[i], key);
     }
 }
 
-// Função para dividir um nó cheio
-void BPlusTree::splitChild(std::shared_ptr<BPlusTreeNode> parent, int index) {
-    auto fullNode = parent->children[index];
-    auto newNode = std::make_shared<BPlusTreeNode>(fullNode->isLeaf);
-    int medianIndex = MAX_KEYS / 2;
+template <typename Key>
+void BPlusTree<Key>::insertNonFull(Nozin* no, Key key, Block* bloco) {
+    int i = no->numKeys - 1;
 
-    // Mover a chave mediana para o nó pai
-    parent->keys.insert(parent->keys.begin() + index, fullNode->keys[medianIndex]);
-    parent->children.insert(parent->children.begin() + index + 1, newNode);
-
-    // Mover as chaves e filhos para o novo nó
-    newNode->keys.assign(fullNode->keys.begin() + medianIndex + 1, fullNode->keys.end());
-    fullNode->keys.resize(medianIndex);
-    
-    if (!fullNode->isLeaf) {
-        newNode->children.assign(fullNode->children.begin() + medianIndex + 1, fullNode->children.end());
-        fullNode->children.resize(medianIndex + 1);
+    if (no->isLeaf) {
+        while (i >= 0 && key < no->keys[i]) {
+            no->keys[i + 1] = no->keys[i];
+            no->ponteiros[i + 1] = no->ponteiros[i]; // Mover ponteiros
+            i--;
+        }
+        no->keys[i + 1] = key;
+        no->ponteiros[i + 1] = bloco; // Armazenar o bloco
+        no->numKeys++;
+    } else {
+        while (i >= 0 && key < no->keys[i]) {
+            i--;
+        }
+        i++;
+        if (static_cast<Nozin*>(no->ponteiros[i])->numKeys == 2) { // Se o nó filho está cheio
+            splitChild(no, i, static_cast<Nozin*>(no->ponteiros[i]));
+            if (key > no->keys[i]) {
+                i++;
+            }
+        }
+        insertNonFull(static_cast<Nozin*>(no->ponteiros[i]), key, bloco);
     }
 }
 
-// Função para imprimir a B+ Tree
-void BPlusTree::print() const {
-    printNode(root, 0);
+template <typename Key>
+void BPlusTree<Key>::splitChild(Nozin* parent, int index, Nozin* child) {
+    Nozin* newChild = new Nozin(child->isLeaf);
+    newChild->numKeys = 1; // Inicializa com 1 chave
+
+    // Move a metade das chaves e ponteiros do filho para o novo filho
+    newChild->keys[0] = child->keys[1];
+
+    if (!child->isLeaf) {
+        newChild->ponteiros[0] = child->ponteiros[1];
+    }
+
+    child->numKeys = 1; // Atualiza o número de chaves no filho original
+    parent->keys.insert(parent->keys.begin() + index, child->keys[0]); // Insere a nova chave na raiz
+    parent->ponteiros = static_cast<void**>(realloc(parent->ponteiros, (parent->numKeys + 1) * sizeof(void*))); // Re-alocar ponteiros
+    parent->ponteiros[index + 1] = newChild; // Insere o novo filho
+    parent->numKeys++;
 }
 
-void BPlusTree::printNode(const std::shared_ptr<BPlusTreeNode>& node, int depth) const {
-    if (node != nullptr) {
-        for (int i = 0; i < node->keys.size(); ++i) {
-            printNode(node->children[i], depth + 1);
-            for (int j = 0; j < depth; ++j) {
-                std::cout << "  ";
-            }
-            std::cout << node->keys[i] << std::endl;
+template <typename Key>
+void BPlusTree<Key>::display(Nozin* no, int level) {
+    if (no == nullptr) return;
+
+    std::cout << "Level " << level << ": ";
+    for (int i = 0; i < no->numKeys; i++) {
+        std::cout << no->keys[i] << " ";
+    }
+    std::cout << std::endl;
+
+    if (!no->isLeaf) {
+        for (int i = 0; i <= no->numKeys; i++) {
+            display(static_cast<Nozin*>(no->ponteiros[i]), level + 1);
         }
-        printNode(node->children[node->children.size() - 1], depth + 1);
     }
 }
 
 int main() {
-    BPlusTree btree;
-    
-    // Exemplo de inserção de chaves
-    btree.insert(5);
-    btree.insert(10);
-    btree.insert(3);
-    btree.insert(6);
-    btree.insert(4);
-    btree.insert(8);
-    
-    std::cout << "B+ Tree:" << std::endl;
-    btree.print();
+    BPlusTree<int> bPlusTree;
+
+    // Inserindo alguns dados
+    for (int i = 1; i <= 5; i++) {
+        BPlusTree<int>::Block* bloco = new BPlusTree<int>::Block();
+        bloco->endereco = i * 10; // Exemplo de endereço
+        bPlusTree.insert(i, bloco);
+    }
+
+    // Exibindo a árvore
+    std::cout << "B+ Tree structure:" << std::endl;
+    bPlusTree.display(bPlusTree.getRoot());
 
     return 0;
 }
