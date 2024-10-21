@@ -1,5 +1,4 @@
 #include "HashUpload.h"
-#include "btree.cpp"
 #include <locale>
 
 int main(int argc, char* argv[]) {
@@ -21,12 +20,12 @@ int main(int argc, char* argv[]) {
     std::cout << "CSV processado. Total de artigos: " << articles.size() << std::endl;
 
     // Grava os artigos no arquivo binário utilizando hash
-    gravarArtigosComHash(articles, "articles.bin", "overflow.bin");
+    gravarArtigosComHash(articles, "articles.bin", "overflow.bin", "index.bin");
     std::cout << "Artigos gravados nos buckets binários." << std::endl;
 
     // Exemplo: Ler e imprimir os artigos de um bucket específico
     int bucket_to_read;
-    while(bucket_to_read != -1) {
+    do {
         std::cout << "Digite o número do bucket para ler (0 a " << NUM_BUCKETS - 1 << "): ";
         std::cin >> bucket_to_read;
 
@@ -39,7 +38,7 @@ int main(int argc, char* argv[]) {
                 article.print();
             }
         }
-    }
+    }while(bucket_to_read != -1);
 
     std::cout << "Processamento completo!" << std::endl;
     return 0;

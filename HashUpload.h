@@ -21,11 +21,11 @@ struct Article {
 
     // Função para imprimir os dados do artigo
     void print() const {
-        std::cout << "ID: " << id << std::endl; /*<< ", \nTitle: " << title 
+        std::cout << "ID: " << id << ", \nTitle: " << title 
                   << ", \nYear: " << year << ", \nAuthors: " << authors 
                   << ", \nitations: " << citations 
                   << ", \nUpdated At: " << updated_at 
-                  << ", \nSnippet: " << snippet << std::endl;*/
+                  << ", \nSnippet: " << snippet << std::endl;
     }
 };
 constexpr size_t NUM_BUCKETS = 100;
@@ -58,21 +58,6 @@ struct Block {
     }
 };
 
-
-
-
-
-
-/* Definições de constantes
-
-constexpr usado devido à ambiguidade no cálculo do C++
-Struct Article tem que ser declarada antes do "RECORDS_PER_BLOCK"
-
-#define NUM_BUCKETS 100
-#define BLOCK_SIZE 4096 // 4KB por bloco
-#define BLOCKS_PER_BUCKET 10
-#define RECORDS_PER_BLOCK (BLOCK_SIZE / sizeof(Article))*/
-
 // Funções de manipulação
 int hashFunction(int id);
 std::string removeQuotes(const std::string& str);
@@ -81,5 +66,5 @@ bool is_number(const std::string& str);
 void initializeBuckets(const std::string& filename);
 std::vector<Article> processarCSV(const std::string& file_path);
 void insertRecord(const Article& article, const std::string& bucket_filename, const std::string& overflow_filename);
-void gravarArtigosComHash(const std::vector<Article>& articles, const std::string& bucket_filename, const std::string& overflow_filename);
+void gravarArtigosComHash(const std::vector<Article>& articles, const std::string& bucket_filename, const std::string& overflow_filename, const std::string& index_filename);
 std::vector<Article> readBucket(int bucket, const std::string& bucket_filename, const std::string& overflow_filename);

@@ -7,13 +7,7 @@
 #include <cstring>
 #include <algorithm>
 #include "HashUpload.h"
-#include "btree.cpp"
-
-/* #defines foram definidos no .hb
-#define NUM_BUCKETS 100
-#define BLOCK_SIZE 4096 // 4KB por bloco
-#define RECORDS_PER_BLOCK (BLOCK_SIZE / sizeof(Article))
-#define BLOCKS_PER_BUCKET 10*/
+#include "btree.h"
 
 // Função de hash simples
 int hashFunction(int id) {
@@ -204,22 +198,95 @@ void insertRecord(const Article& article, const std::string& bucket_filename, co
 
 
 // Função para gravar todos os artigos utilizando hash
-void gravarArtigosComHash(const std::vector<Article>& articles, const std::string& bucket_filename, const std::string& overflow_filename, const std::string& index_filename) {
-    // Apaga o arquivo de overflow, se já existir, para recriá-lo
-    std::ofstream overflow_file(overflow_filename, std::ios::binary | std::ios::trunc);
-    if (!overflow_file.is_open()) {
-        std::cerr << "Erro ao abrir o arquivo de overflow para sobrescrever!" << std::endl;
-        return;
-    }
-    overflow_file.close();  // Fechar, pois apenas criamos o arquivo vazio
-
+/*void gravarArtigosComHash(const std::vector<Article>& articles, const std::string& bucket_filename, const std::string& overflow_filename) {
+    // Itera sobre todos os artigos e insere cada um no bucket correspondente
     for (const auto& article : articles) {
         insertRecord(article, bucket_filename, overflow_filename);
     }
 
-    // Gerar os índices primários após inserir os artigos
-    gerarIndicesPrimarios(articles, index_filename);
+    // (Opcional) Você pode implementar aqui a lógica para criar um índice, se necessário
+    // Para isso, seria necessário adicionar o código para criar e gravar o índice no arquivo index_filename
+    // A implementação do índice depende da estrutura de dados que você deseja usar (por exemplo, B-tree, árvore de pesquisa, etc.)
+}*/
+
+// Função para inserir um registro em um bucket e retornar a posição onde foi inserido
+std::streampos insertRecordAndGetPosition(const Article& article, const std::string& bucket_filename, const std::string& overflow_filename) {
+    std::fstream file(bucket_filename, std::ios::binary | std::ios::in | std::ios::out);
+    if (!file.is_open()) {
+        std::cerr << "Erro ao abrir o arquivo de buckets para inserção!" << std::endl;
+        return -1;
+    }
+
+    int bucket = hashFunction(article.id);
+    std::streampos bucket_start = bucket * BLOCKS_PER_BUCKET * BLOCK_SIZE;
+
+    for (int block = 0; block < BLOCKS_PER_BUCKET; ++block) {
+        std::streampos block_pos = bucket_start + static_cast<std::streamoff>(block * BLOCK_SIZE);
+        file.seekg(block_pos);
+
+        // Ler o bloco completo
+        Block current_block;
+        file.read(reinterpret_cast<char*>(&current_block), sizeof(Block));
+
+        if (!current_block.isFull()) {
+            // Inserir o artigo neste bloco
+            current_block.addArticle(article);
+
+            // Voltar e gravar o bloco atualizado
+            file.seekp(block_pos);
+            file.write(reinterpret_cast<const char*>(&current_block), sizeof(Block));
+
+            file.close();
+            return block_pos;  // Retorna a posição onde o artigo foi inserido
+        }
+    }
+
+    file.close();
+
+    // Se o bucket estiver cheio, insere no arquivo de overflow
+    std::ofstream overflow_file(overflow_filename, std::ios::binary | std::ios::app);
+    if (!overflow_file.is_open()) {
+        std::cerr << "Erro ao abrir o arquivo de overflow!" << std::endl;
+        return -1;
+    }
+
+    std::streampos overflow_pos = overflow_file.tellp();  // Posição antes de escrever o artigo
+    overflow_file.write(reinterpret_cast<const char*>(&article), sizeof(Article));
+    overflow_file.close();
+
+    std::cerr << "Bucket cheio. Registro inserido no overflow." << std::endl;
+
+    return overflow_pos;  // Retorna a posição do artigo no overflow
 }
+void gravarArtigosComHash(const std::vector<Article>& articles, const std::string& bucket_filename, const std::string& overflow_filename, const std::string& index_filename) {
+    // Inicializa a B+ Tree, que agora deve ser lida do arquivo de índice
+    BPlusTree bptree(3);  // O grau é (3)
+
+    // Abre o arquivo de índice em modo binário (para ler e gravar)
+    std::fstream index_file(index_filename, std::ios::binary | std::ios::in | std::ios::out | std::ios::trunc);
+    if (!index_file.is_open()) {
+        std::cerr << "Erro ao abrir o arquivo de índice!" << std::endl;
+        return;
+    }
+    // Itera sobre todos os artigos e insere cada um no bucket correspondente
+    for (const auto& article : articles) {
+        // Inserir o artigo no bucket correto e obter a posição onde ele foi inserido
+        std::streampos pos = insertRecordAndGetPosition(article, bucket_filename, overflow_filename);
+
+        // Inserir o ID e a posição na B+ Tree
+        bptree.insert(article.id, static_cast<int>(pos)); // pos convertido para int (dependendo do seu sistema)
+    }
+
+    // Salva a B+ Tree no arquivo de índice (reescreve a árvore no arquivo)
+    index_file.seekp(0);  // Retorna ao início do arquivo para reescrever
+    std::ofstream index_file_write(index_filename, std::ios::binary);
+    bptree.saveToFile(index_file_write);
+
+    index_file.close();
+}
+
+
+
 
 
 // Função para ler registros de um bucket específico
@@ -265,48 +332,3 @@ std::vector<Article> readBucket(int bucket, const std::string& bucket_filename, 
     return articles;
 }
 
-
-// Função para gerar o arquivo de índices primários usando a B+ Tree
-// Função para gerar o arquivo de índices primários usando a B+ Tree
-void gerarIndicesPrimarios(const std::vector<Article>& articles, const std::string& bucket_filename, const std::string& index_filename) {
-    BPlusTree btree;
-
-    // Inserir os IDs dos artigos na B+ Tree com o endereço do bloco
-    for (const auto& article : articles) {
-        int bucket = hashFunction(article.id);
-        std::streampos bucket_start = bucket * BLOCKS_PER_BUCKET * BLOCK_SIZE;
-
-        // Calcula o endereço do bloco onde o artigo está armazenado
-        for (int block = 0; block < BLOCKS_PER_BUCKET; ++block) {
-            std::streampos block_pos = bucket_start + static_cast<std::streamoff>(block * BLOCK_SIZE);
-            Block current_block;
-
-            // Ler o bloco para verificar se o artigo está presente
-            std::ifstream file(bucket_filename, std::ios::binary);
-            file.seekg(block_pos);
-            file.read(reinterpret_cast<char*>(&current_block), sizeof(Block));
-
-            // Verifica se o artigo está no bloco
-            for (int i = 0; i < current_block.header.recordCount; ++i) {
-                if (current_block.records[i].id == article.id) {
-                    // Inserir na B+ Tree: chave (ID) e endereço (posição do bloco)
-                    btree.insert(article.id, block_pos);
-                    break;
-                }
-            }
-            file.close();
-        }
-    }
-
-    // Salvar a árvore B+ em um arquivo
-    std::ofstream index_file(index_filename, std::ios::binary);
-    if (!index_file.is_open()) {
-        std::cerr << "Erro ao abrir o arquivo de índices primários para gravação!" << std::endl;
-        return;
-    }
-
-    // Aqui você pode implementar a lógica para gravar a B+ Tree no arquivo
-    btree.save(index_file); // Supondo que você tenha uma função para salvar a B+ Tree
-
-    index_file.close();
-}
