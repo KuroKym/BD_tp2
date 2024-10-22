@@ -28,6 +28,11 @@ struct Article {
                   << ", \nSnippet: " << snippet << std::endl;
     }
 };
+
+
+
+
+
 constexpr size_t NUM_BUCKETS = 100;
 constexpr size_t BLOCK_SIZE = 4096; // 4KB por bloco
 constexpr size_t RECORDS_PER_BLOCK = BLOCK_SIZE / sizeof(Article);
@@ -57,6 +62,8 @@ struct Block {
         }
     }
 };
+
+
 
 // Funções de manipulação
 int hashFunction(int id);

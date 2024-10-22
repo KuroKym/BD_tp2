@@ -17,7 +17,25 @@ int calculateTotalBlocks(const std::string& filename) {
     return static_cast<int>(file_size / BLOCK_SIZE);
 }
 
-// Função para encontrar um registro pelo ID e retornar as informações solicitadas
+// Função auxiliar para realizar busca binária dentro de um bloco de registros
+int binarySearchInBlock(const Block& block, int id) {
+    int low = 0;
+    int high = block.header.recordCount - 1;
+
+    while (low <= high) {
+        int mid = (low + high) / 2;
+        if (block.records[mid].id == id) {
+            return mid;  // Registro encontrado
+        }
+        if (block.records[mid].id < id) {
+            low = mid + 1;
+        } else {
+            high = mid - 1;
+        }
+    }
+    return -1;  // Registro não encontrado
+}
+
 void findRecordById(int id, const std::string& bucket_filename, const std::string& overflow_filename) {
     int bucket = hashFunction(id);
     std::ifstream file(bucket_filename, std::ios::binary);
@@ -36,24 +54,19 @@ void findRecordById(int id, const std::string& bucket_filename, const std::strin
         std::streampos block_pos = bucket_start + static_cast<std::streamoff>(block * BLOCK_SIZE);
         file.seekg(block_pos);
 
-        // Ler o cabeçalho do bloco
-        BlockHeader header;
-        file.read(reinterpret_cast<char*>(&header), sizeof(BlockHeader));
+        // Ler o bloco completo (incluindo cabeçalho e registros)
+        Block block_data;
+        file.read(reinterpret_cast<char*>(&block_data), sizeof(Block));
 
         blocks_read++;  // Incrementa o contador de blocos lidos
 
-        // Procura pelo registro no bloco
-        for (int i = 0; i < header.recordCount; ++i) {
-            Article article;
-            file.read(reinterpret_cast<char*>(&article), sizeof(Article));
-            if (article.id == id) {
-                found = true;
-                found_article = article;
-                break;
-            }
+        // Executa busca binária dentro do bloco
+        int index = binarySearchInBlock(block_data, id);
+        if (index != -1) {
+            found = true;
+            found_article = block_data.records[index];
+            break;
         }
-
-        if (found) break; // Sai do laço se o registro foi encontrado
     }
 
     file.close();
@@ -78,12 +91,8 @@ void findRecordById(int id, const std::string& bucket_filename, const std::strin
         overflow_file.close();
     }
 
-    // Calcula o número total de blocos no arquivo de dados principal
-    int total_blocks = calculateTotalBlocks(bucket_filename);
-
     // Exibe os resultados
     if (found) {
-        
         std::cout << "Registro encontrado:" << std::endl;
         std::cout << "ID: " << found_article.id << std::endl;
         std::cout << "Título: " << found_article.title << std::endl;
@@ -94,11 +103,11 @@ void findRecordById(int id, const std::string& bucket_filename, const std::strin
         std::cout << "Snippet: " << found_article.snippet << std::endl;
 
         std::cout << "Blocos lidos: " << blocks_read << std::endl;
-        std::cout << "Total de blocos no arquivo: " << total_blocks << std::endl;
     } else if(id > 0){
         std::cout << "Registro com ID " << id << " não encontrado." << std::endl;
     }else{return;}
 }
+
 
 
 

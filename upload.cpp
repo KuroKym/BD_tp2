@@ -192,7 +192,7 @@ void insertRecord(const Article& article, const std::string& bucket_filename, co
 
         overflow_file.write(reinterpret_cast<const char*>(&article), sizeof(Article));
         overflow_file.close();
-        std::cerr << "Bucket cheio. Registro inserido no overflow." << std::endl;
+        //std::cerr << "Bucket cheio. Registro inserido no overflow." << std::endl;
     }
 }
 
@@ -254,7 +254,7 @@ std::streampos insertRecordAndGetPosition(const Article& article, const std::str
     overflow_file.write(reinterpret_cast<const char*>(&article), sizeof(Article));
     overflow_file.close();
 
-    std::cerr << "Bucket cheio. Registro inserido no overflow." << std::endl;
+    //std::cerr << "Bucket cheio. Registro inserido no overflow." << std::endl;
 
     return overflow_pos;  // Retorna a posição do artigo no overflow
 }
@@ -269,12 +269,18 @@ void gravarArtigosComHash(const std::vector<Article>& articles, const std::strin
         return;
     }
     // Itera sobre todos os artigos e insere cada um no bucket correspondente
+    int count = 0;
     for (const auto& article : articles) {
         // Inserir o artigo no bucket correto e obter a posição onde ele foi inserido
+
         std::streampos pos = insertRecordAndGetPosition(article, bucket_filename, overflow_filename);
 
         // Inserir o ID e a posição na B+ Tree
         bptree.insert(article.id, static_cast<int>(pos)); // pos convertido para int (dependendo do seu sistema)
+        count++;
+        if(count % 10000 == 0){
+            std::cout << "Artigos processados: " << count << std::endl;
+        }
     }
 
     // Salva a B+ Tree no arquivo de índice (reescreve a árvore no arquivo)
