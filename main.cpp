@@ -20,7 +20,7 @@ int main(int argc, char* argv[]) {
     std::cout << "CSV processado. Total de artigos: " << articles.size() << std::endl;
 
     // Grava os artigos no arquivo binário utilizando hash
-    gravarArtigosComHash(articles, "articles.bin", "overflow.bin", "index.bin");
+    gravarArtigosComHash(articles, "articles.bin", "overflow.bin");
     std::cout << "Artigos gravados nos buckets binários." << std::endl;
 
     // Exemplo: Ler e imprimir os artigos de um bucket específico

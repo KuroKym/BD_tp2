@@ -29,10 +29,6 @@ struct Article {
     }
 };
 
-
-
-
-
 constexpr size_t NUM_BUCKETS = 100;
 constexpr size_t BLOCK_SIZE = 4096; // 4KB por bloco
 constexpr size_t RECORDS_PER_BLOCK = BLOCK_SIZE / sizeof(Article);
@@ -63,8 +59,6 @@ struct Block {
     }
 };
 
-
-
 // Funções de manipulação
 int hashFunction(int id);
 std::string removeQuotes(const std::string& str);
@@ -73,5 +67,5 @@ bool is_number(const std::string& str);
 void initializeBuckets(const std::string& filename);
 std::vector<Article> processarCSV(const std::string& file_path);
 void insertRecord(const Article& article, const std::string& bucket_filename, const std::string& overflow_filename);
-void gravarArtigosComHash(const std::vector<Article>& articles, const std::string& bucket_filename, const std::string& overflow_filename, const std::string& index_filename);
+void gravarArtigosComHash(const std::vector<Article>& articles, const std::string& bucket_filename, const std::string& overflow_filename);
 std::vector<Article> readBucket(int bucket, const std::string& bucket_filename, const std::string& overflow_filename);
