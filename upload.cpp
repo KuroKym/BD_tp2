@@ -250,29 +250,31 @@ void* insertRecordAndGetPosition(const Article& article, const std::string& buck
 }
 
 void gravarArtigosComHash(const std::vector<Article>& articles, const std::string& bucket_filename, const std::string& overflow_filename) {
-    // Inicializa a B+ Tree, que agora deve ser lida do arquivo de índice
+    // Inicializa a B+ Tree
     BplusTree bptree(3);  // O grau é (3)
 
     // Itera sobre todos os artigos e insere cada um no bucket correspondente
     int count = 0;
     for (const auto& article : articles) {
         // Inserir o artigo no bucket correto e obter a posição onde ele foi inserido
-
         void* pos = insertRecordAndGetPosition(article, bucket_filename, overflow_filename);
 
         // Inserir o ID e a posição na B+ Tree
-        bptree.insert(article.id, pos); // pos convertido para int (dependendo do seu sistema)
-        cout << "Artigo " << article.id << " inserido na b+ tree na posição " << pos << endl;
+        if (pos != nullptr) {  // Verifique se a posição não é nula
+            bptree.insert(article.id, pos);  // Insere o ID e a posição na B+ Tree
+            std::cout << "Artigo " << article.id << " inserido na B+ Tree na posição " << *(static_cast<int*>(pos)) << std::endl;
+        }
+
         count++;
-        if(count % 10000 == 0){
+        if (count % 10000 == 0) {
             std::cout << "Artigos processados: " << count << std::endl;
         }
     }
 
     // Salva a B+ Tree no arquivo de índice (reescreve a árvore no arquivo)
     bptree.saveToFile("index.bin");
-
 }
+
 
 
 

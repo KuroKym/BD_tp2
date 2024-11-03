@@ -26,10 +26,18 @@ void Node::insert_at_leaf(Node* leaf, int value, void* key) {
 
 // Insert operation
 void BplusTree::insert(int value, void* key) {
+    std::cout << "Inserindo valor: " << value << std::endl;
     Node* leafNode = search(value);
+    std::cout << "Nó folha encontrado para inserção: ";
+    for (const auto& val : leafNode->values) {
+        std::cout << val << " ";
+    }
+    std::cout << std::endl;
+
     leafNode->insert_at_leaf(leafNode, value, key);
 
     if (leafNode->values.size() == leafNode->order) {
+        std::cout << "Nó folha está cheio, realizando split." << std::endl;
         Node* newLeaf = new Node(leafNode->order);
         newLeaf->check_leaf = true;
         newLeaf->parent = leafNode->parent;
@@ -42,6 +50,12 @@ void BplusTree::insert(int value, void* key) {
         leafNode->values.resize(mid + 1);
         leafNode->keys.resize(mid + 1);
         leafNode->nextKey = newLeaf;
+
+        std::cout << "Nó folha dividido. Novo nó folha contém valores: ";
+        for (const auto& val : newLeaf->values) {
+            std::cout << val << " ";
+        }
+        std::cout << std::endl;
 
         insert_in_parent(leafNode, newLeaf->values[0], newLeaf);
     }
@@ -80,6 +94,18 @@ bool BplusTree::find(int value, void* key) {
         }
     }
     return false;
+}
+// Search for a value and return its key
+void* BplusTree::searchKey(int value) {
+    Node* leaf = search(value);
+    for (int i = 0; i < leaf->values.size(); i++) {
+        if (leaf->values[i] == value) {
+            if (!leaf->keys[i].empty()) {
+                return leaf->keys[i][0]; // Return the first key found
+            }
+        }
+    }
+    return nullptr; // Return nullptr if the value or key is not found
 }
 
 // Insert at the parent node
@@ -120,24 +146,50 @@ void BplusTree::insert_in_parent(Node* node, int value, Node* newLeaf) {
     }
 }
 
-// Display the tree
-void BplusTree::printTree(Node* node, int depth) {
-    if (node == nullptr) return;
+void BplusTree::printLeaves() {
+    Node* current = root;
 
-    // Imprimir os valores do nó
-    for (int i = 0; i < node->values.size(); i++) {
-        // Imprimir a profundidade da árvore
-        cout << node->values[i] << " "; // 4 espaços para cada nível
-    }
-    cout << endl;
-
-    // Se o nó não for uma folha, imprimir os filhos
-    if (!node->check_leaf) {
-        for (int i = 0; i <= node->values.size(); i++) {
-            printTree(node->children[i], depth + 1);
+    // Navegar até o nó folha mais à esquerda
+    while (current != nullptr && !current->check_leaf) {
+        std::cout << "Navegando para o filho mais à esquerda do nó com valores: ";
+        for (const auto& value : current->values) {
+            std::cout << value << " ";
         }
+        std::cout << std::endl;
+        current = current->children[0]; // Move para o filho mais à esquerda
+    }
+
+    // Imprimir todos os valores das folhas
+    while (current != nullptr) {
+        std::cout << "Valores da folha: ";
+        for (const auto& value : current->values) {
+            std::cout << value << " ";
+        }
+        std::cout << std::endl;
+
+        // Avançar para a próxima folha encadeada
+        std::cout << "Avançando para a próxima folha." << std::endl;
+        current = current->nextKey; // Usar nextKey para ir à próxima folha
     }
 }
+
+
+
+// Display the tree
+void BplusTree::printTree(Node* node) {
+        if (node == nullptr) return;
+        for (int i = 0; i < node->values.size(); i++) {
+            cout << node->values[i] << " ";
+        }
+        cout << endl;
+        if (!node->check_leaf) {
+            for (int i = 0; i <= node->values.size(); i++) {
+                printTree(node->children[i]);
+            }
+        }
+    }
+
+
 
 // Função para salvar a árvore em um arquivo
 void BplusTree::saveTree(ofstream& file, Node* node) {
@@ -184,44 +236,55 @@ void BplusTree::saveToFile(const string& filename) {
 
 // Função para carregar a árvore de um arquivo
 void BplusTree::loadTree(ifstream& file, Node*& node, int order) {
-    if (!file.is_open() || file.eof()) return;
+    if (!file.is_open() || file.eof()) {
+        std::cout << "Arquivo não aberto ou EOF atingido. Encerrando carregamento." << std::endl;
+        return;
+    }
 
     // Ler informações do nó
     bool isLeaf;
     file.read((char*)&isLeaf, sizeof(isLeaf));
-    
+    std::cout << "Carregando nó: " << (isLeaf ? "Folha" : "Interno") << std::endl;
+
     node = new Node(order);
     node->check_leaf = isLeaf;
 
     int numValues;
     file.read((char*)&numValues, sizeof(numValues));
     node->values.resize(numValues);
-    
+    std::cout << "Número de valores no nó: " << numValues << std::endl;
+
     for (int i = 0; i < numValues; ++i) {
         file.read((char*)&node->values[i], sizeof(int));
+        std::cout << "Valor[" << i << "]: " << node->values[i] << std::endl;
     }
 
     if (isLeaf) {
         long nextKeyAddr;
         file.read((char*)&nextKeyAddr, sizeof(nextKeyAddr));
         node->nextKey = reinterpret_cast<Node*>(nextKeyAddr);
+        std::cout << "Endereço do próximo nó chave: " << nextKeyAddr << std::endl;
     } else {
         int numChildren;
         file.read((char*)&numChildren, sizeof(numChildren));
         node->children.resize(numChildren);
+        std::cout << "Número de filhos: " << numChildren << std::endl;
 
         for (int i = 0; i < numChildren; ++i) {
             long childAddr;
             file.read((char*)&childAddr, sizeof(childAddr));
             node->children[i] = reinterpret_cast<Node*>(childAddr);
+            std::cout << "Endereço do filho[" << i << "]: " << childAddr << std::endl;
         }
     }
 
     // Carregar recursivamente os filhos
-    for (Node* child : node->children) {
-        loadTree(file, child, order);
+    for (int i = 0; i < node->children.size(); ++i) {
+        loadTree(file, node->children[i], order);
+        node->children[i]->parent = node; // Correctly link the parent
     }
 }
+
 
 // Função para carregar a árvore de um arquivo
 void BplusTree::loadFromFile(const string& filename, int order) {
@@ -236,31 +299,47 @@ void BplusTree::loadFromFile(const string& filename, int order) {
 }
    
 
-/*int main() {
+int main() {
     int order = 3;
     BplusTree bplustree(order);
     BplusTree bplustree2(order);
 
-    int id = 5;
+    int id = 1;
     void* blockPtr = reinterpret_cast<void*>(0x1000);
     bplustree.insert(id, blockPtr);
-    id = 52;
+    id = 2;
     blockPtr = reinterpret_cast<void*>(0x1200);
     bplustree.insert(id, blockPtr);
-    id = 2;
+    id = 3;
     blockPtr = reinterpret_cast<void*>(0x1400); // Example block pointer
-
     bplustree.insert(id, blockPtr);
+    id = 4;
+    blockPtr = reinterpret_cast<void*>(0x1600); // Example block pointer
+    bplustree.insert(id, blockPtr);
+    id = 5;
+    blockPtr = reinterpret_cast<void*>(0x1800); // Example block pointer
+    bplustree.insert(id, blockPtr);
+    id = 6;
+    blockPtr = reinterpret_cast<void*>(0x2000); // Example block pointer
+    bplustree.insert(id, blockPtr);
+    id = 7;
+    blockPtr = reinterpret_cast<void*>(0x2200); // Example block pointer
+    bplustree.insert(id, blockPtr);
+    id = 8;
+    blockPtr = reinterpret_cast<void*>(0x2400); // Example block pointer
+    bplustree.insert(id, blockPtr);
+    id = 9;
+    blockPtr = reinterpret_cast<void*>(0x2600); // Example block pointer
+    bplustree.insert(id, blockPtr);
+    id = 10;
+    blockPtr = reinterpret_cast<void*>(0x2800); // Example block pointer
+    bplustree.insert(id, blockPtr);
+
     bplustree.saveToFile("index.bin");
-    cout << "Saved" << endl;
-    bplustree2.loadFromFile("index.bin", order);
-    cout << "Loaded" << endl;
-    bplustree2.printTree(bplustree2.root, 3);
-    if (bplustree2.find(id, blockPtr)) {
-        cout << "Found" << endl;
-    } else {
-        cout << "Not found" << endl;
-    }
+    //bplustree2.loadFromFile("index.bin", order);
+    bplustree.printTree(bplustree.root);
+    //cout << "\n" << endl;
+    //cout << bplustree2.root->children[1]->values[0] << endl;
 
     return 0;
-}*/
+}

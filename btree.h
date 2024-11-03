@@ -43,11 +43,13 @@ public:
     Node* search(int value);
     bool find(int value, void* key);
     void insert_in_parent(Node* node, int value, Node* newLeaf);
-    void printTree(Node* node, int depth = 0);
+    void printTree(Node* node);
     void saveTree(ofstream& file, Node* node);
     void saveToFile(const string& filename);
     void loadTree(ifstream& file, Node*& node, int order);
     void loadFromFile(const string& filename, int order);
+    void* searchKey(int value);
+    void printLeaves();
 };
 
 #endif // BTREE_H
