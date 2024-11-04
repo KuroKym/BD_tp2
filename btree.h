@@ -3,53 +3,42 @@
 
 #include <iostream>
 #include <vector>
-#include <cmath>
-#include <string>
 #include <fstream>
 
-using namespace std;
-
-// Node creation
 class Node {
 public:
     int order;
-    vector<int> values;               // IDs
-    vector<Node*> children;           // For internal nodes
-    vector<vector<void*>> keys;       // Pointers to blocks for leaf nodes
+    bool check_leaf;
+    std::vector<int> values;
+    std::vector<std::vector<void*>> keys;
+    std::vector<Node*> children;
     Node* nextKey;
     Node* parent;
-    bool check_leaf;
 
-    Node(int order) {
-        this->order = order;
-        this->nextKey = nullptr;
-        this->parent = nullptr;
-        this->check_leaf = false;
-    }
-    
-    void insert_at_leaf(Node* leaf, int value, void* key);
+    Node(int order);
+    void insert_at_leaf(int value, void* key);
 };
 
 class BplusTree {
 public:
     Node* root;
+    int order;
 
-    BplusTree(int order) {
-        root = new Node(order);
-        root->check_leaf = true;
-    }
-    
-    void insert(int value, void* key);
+    BplusTree(int order);
     Node* search(int value);
+    void insert(int value, void* key);
     bool find(int value, void* key);
-    void insert_in_parent(Node* node, int value, Node* newLeaf);
-    void printTree(Node* node);
-    void saveTree(ofstream& file, Node* node);
-    void saveToFile(const string& filename);
-    void loadTree(ifstream& file, Node*& node, int order);
-    void loadFromFile(const string& filename, int order);
     void* searchKey(int value);
+    void insert_in_parent(Node* node, int value, Node* newLeaf);
+    void split(Node* parentNode);
     void printLeaves();
+    void printTree(Node* node, int level = 0);
+
+    // Funções de salvar e carregar a árvore
+    void saveTree(std::ofstream& file, Node* node);
+    void saveToFile(const std::string& filename);
+    void loadTree(std::ifstream& file, Node*& node, int order);
+    void loadFromFile(const std::string& filename, int order);
 };
 
 #endif // BTREE_H
