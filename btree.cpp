@@ -162,75 +162,110 @@ void BplusTree::printLeaves() {
     std::cout << "nullptr" << std::endl;
 }
 
-void BplusTree::saveTree(std::ofstream& file, Node* node) {
+void BplusTree::saveTree(ofstream& file, Node* node) {
     if (!node) return;
-    
-    // Salvar o indicador de nó folha
-    file << node->check_leaf << " ";
-    
-    // Salvar os valores do nó
-    file << node->values.size() << " ";
-    for (int val : node->values) {
-        file << val << " ";
+
+    // Salva informações do nó
+    file.write((char*)&node->check_leaf, sizeof(node->check_leaf));
+    int numValues = node->values.size();
+    file.write((char*)&numValues, sizeof(numValues));
+
+    for (int value : node->values) {
+        file.write((char*)&value, sizeof(value));
     }
-    
-    // Salvar os filhos do nó se não for folha
-    if (!node->check_leaf) {
-        file << node->children.size() << " ";
+
+    if (node->check_leaf) {
+        long nextKeyAddr = (node->nextKey) ? reinterpret_cast<long>(node->nextKey) : -1;
+        file.write((char*)&nextKeyAddr, sizeof(nextKeyAddr));
+    } else {
+        int numChildren = node->children.size();
+        file.write((char*)&numChildren, sizeof(numChildren));
         for (Node* child : node->children) {
-            saveTree(file, child);
+            long childAddr = reinterpret_cast<long>(child);
+            file.write((char*)&childAddr, sizeof(childAddr));
         }
     }
+
+    // Salvar recursivamente os filhos
+    for (Node* child : node->children) {
+        saveTree(file, child);
+    }
 }
 
-void BplusTree::saveToFile(const std::string& filename) {
-    std::ofstream file(filename, std::ios::out);
-    if (!file.is_open()) {
-        std::cerr << "Erro ao abrir o arquivo para salvar a árvore.\n";
+// Função para salvar a árvore em um arquivo
+void BplusTree::saveToFile(const string& filename) {
+    ofstream file(filename, ios::binary);
+    if (file.is_open()) {
+        saveTree(file, root);
+        file.close();
+        cout << "Árvore salva com sucesso em " << filename << endl;
+    } else {
+        cout << "Erro ao abrir o arquivo." << endl;
+    }
+}
+
+// Função para carregar a árvore de um arquivo
+void BplusTree::loadTree(ifstream& file, Node*& node, int order) {
+    if (!file.is_open() || file.eof()) {
+        std::cout << "Arquivo não aberto ou EOF atingido. Encerrando carregamento." << std::endl;
         return;
     }
-    saveTree(file, root);
-    file.close();
-}
 
-void BplusTree::loadTree(std::ifstream& file, Node*& node, int order) {
+    // Ler informações do nó
     bool isLeaf;
-    int numValues, numChildren;
+    file.read((char*)&isLeaf, sizeof(isLeaf));
+    std::cout << "Carregando nó: " << (isLeaf ? "Folha" : "Interno") << std::endl;
 
-    // Ler se o nó é folha
-    file >> isLeaf;
     node = new Node(order);
     node->check_leaf = isLeaf;
 
-    // Ler os valores do nó
-    file >> numValues;
+    int numValues;
+    file.read((char*)&numValues, sizeof(numValues));
+    node->values.resize(numValues);
+    std::cout << "Número de valores no nó: " << numValues << std::endl;
+
     for (int i = 0; i < numValues; ++i) {
-        int val;
-        file >> val;
-        node->values.push_back(val);
+        file.read((char*)&node->values[i], sizeof(int));
+        std::cout << "Valor[" << i << "]: " << node->values[i] << std::endl;
     }
 
-    // Se não é folha, ler os filhos
-    if (!isLeaf) {
-        file >> numChildren;
+    if (isLeaf) {
+        long nextKeyAddr;
+        file.read((char*)&nextKeyAddr, sizeof(nextKeyAddr));
+        node->nextKey = reinterpret_cast<Node*>(nextKeyAddr);
+        std::cout << "Endereço do próximo nó chave: " << nextKeyAddr << std::endl;
+    } else {
+        int numChildren;
+        file.read((char*)&numChildren, sizeof(numChildren));
+        node->children.resize(numChildren);
+        std::cout << "Número de filhos: " << numChildren << std::endl;
+
         for (int i = 0; i < numChildren; ++i) {
-            Node* child = nullptr;
-            loadTree(file, child, order);
-            child->parent = node;
-            node->children.push_back(child);
+            long childAddr;
+            file.read((char*)&childAddr, sizeof(childAddr));
+            node->children[i] = reinterpret_cast<Node*>(childAddr);
+            std::cout << "Endereço do filho[" << i << "]: " << childAddr << std::endl;
         }
+    }
+
+    // Carregar recursivamente os filhos
+    for (int i = 0; i < node->children.size(); ++i) {
+        loadTree(file, node->children[i], order);
+        node->children[i]->parent = node; // Correctly link the parent
     }
 }
 
-void BplusTree::loadFromFile(const std::string& filename, int order) {
-    std::ifstream file(filename, std::ios::in);
-    if (!file.is_open()) {
-        std::cerr << "Erro ao abrir o arquivo para carregar a árvore.\n";
-        return;
+
+// Função para carregar a árvore de um arquivo
+void BplusTree::loadFromFile(const string& filename, int order) {
+    ifstream file(filename, ios::binary);
+    if (file.is_open()) {
+        loadTree(file, root, order);
+        file.close();
+        cout << "Árvore carregada com sucesso de " << filename << endl;
+    } else {
+        cout << "Erro ao abrir o arquivo." << endl;
     }
-    root = nullptr;
-    loadTree(file, root, order);
-    file.close();
 }
 
 
@@ -265,7 +300,7 @@ void BplusTree::loadFromFile(const std::string& filename, int order) {
     return 0;
 }*/
 
-int main() {
+/*int main() {
     int order = 3;
     BplusTree bplustree(order);
     BplusTree bplustree2(order);
@@ -301,14 +336,14 @@ int main() {
     blockPtr = reinterpret_cast<void*>(0x2800); // Example block pointer
     bplustree.insert(id, blockPtr);
 
-    bplustree.saveToFile("index.bin");
-    //bplustree2.loadFromFile("index.bin", order);
+    //bplustree.saveToFile("index.bin");
+    bplustree2.loadFromFile("index.bin", order);
     //bplustree.printTree(bplustree.root);
     //cout << "\n" << endl;
     //cout << bplustree2.root->children[1]->values[0] << endl;
 
     std::cout << "Estrutura da B+Tree (Ordem 3): " << std::endl;
-    bplustree.printTree(bplustree.root);
+    bplustree2.printTree(bplustree2.root);
 
     return 0;
-}
+}*/
