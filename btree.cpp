@@ -300,7 +300,7 @@ void BplusTree::loadFromFile(const string& filename, int order) {
     return 0;
 }*/
 
-/*int main() {
+int main() {
     int order = 3;
     BplusTree bplustree(order);
     BplusTree bplustree2(order);
@@ -346,4 +346,4 @@ void BplusTree::loadFromFile(const string& filename, int order) {
     bplustree2.printTree(bplustree2.root);
 
     return 0;
-}*/
+}
