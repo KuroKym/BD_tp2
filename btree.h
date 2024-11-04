@@ -4,7 +4,7 @@
 #include <iostream>
 #include <vector>
 #include <fstream>
-
+using namespace std;
 class Node {
 public:
     int order;

@@ -262,7 +262,7 @@ void gravarArtigosComHash(const std::vector<Article>& articles, const std::strin
         // Inserir o ID e a posição na B+ Tree
         if (pos != nullptr) {  // Verifique se a posição não é nula
             bptree.insert(article.id, pos);  // Insere o ID e a posição na B+ Tree
-            std::cout << "Artigo " << article.id << " inserido na B+ Tree na posição " << *(static_cast<int*>(pos)) << std::endl;
+            std::cout << "Artigo " << article.id << " inserido na B+ Tree na posição " << pos << std::endl;
         }
 
         count++;
