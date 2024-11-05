@@ -2,6 +2,7 @@
 #include "hash.hpp"
 #include <iostream>
 #include <fstream>
+
 using namespace std;
 
 Article findRecordByPosition(BplusTreeSec bptree, const std::string titulo, const std::string& bucket_filename) {

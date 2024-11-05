@@ -167,13 +167,13 @@ void BplusTreeSec::saveTree(ofstream& file, NodeSec* nodeseNodeSec) {
     file.write((char*)&nodeseNodeSec->check_leaf, sizeof(nodeseNodeSec->check_leaf));
     int numValues = nodeseNodeSec->values.size();
     file.write((char*)&numValues, sizeof(numValues));
-    cout << "Salvando nó: " << (nodeseNodeSec->check_leaf ? "Folha" : "Interno") << " com " << numValues << " valores." << endl;
+    // cout << "Salvando nó: " << (nodeseNodeSec->check_leaf ? "Folha" : "Interno") << " com " << numValues << " valores." << endl;
 
     for (const std::string& value : nodeseNodeSec->values) {
         int valueSize = value.size();
         file.write((char*)&valueSize, sizeof(valueSize)); // Salva o tamanho da string
         file.write(value.c_str(), valueSize); // Salva o conteúdo da string
-        std::cout << "Salvando valor: " << value << std::endl;
+        // std::cout << "Salvando valor: " << value << std::endl;
     }
 
 
@@ -185,22 +185,22 @@ void BplusTreeSec::saveTree(ofstream& file, NodeSec* nodeseNodeSec) {
         for (std::streampos key : keyList) {
             std::streamoff keyAddr = key;
             file.write((char*)&keyAddr, sizeof(keyAddr));
-            cout << "Salvando chave: " << keyAddr << endl;
+            // cout << "Salvando chave: " << keyAddr << endl;
         }
     }
 
     if (nodeseNodeSec->check_leaf) {
         long nextKeyAddr = (nodeseNodeSec->nextKey) ? reinterpret_cast<long>(nodeseNodeSec->nextKey) : -1;
         file.write((char*)&nextKeyAddr, sizeof(nextKeyAddr));
-        cout << "Salvando endereço do próximo nó chave: " << nextKeyAddr << endl;
+        // cout << "Salvando endereço do próximo nó chave: " << nextKeyAddr << endl;
     } else {
         int numChildren = nodeseNodeSec->children.size();
         file.write((char*)&numChildren, sizeof(numChildren));
-        cout << "Salvando número de filhos: " << numChildren << endl;
+        // cout << "Salvando número de filhos: " << numChildren << endl;
         for (NodeSec* child : nodeseNodeSec->children) {
             long childAddr = reinterpret_cast<long>(child);
             file.write((char*)&childAddr, sizeof(childAddr));
-            cout << "Salvando endereço do filho: " << childAddr << endl;
+            // cout << "Salvando endereço do filho: " << childAddr << endl;
         }
     }
 
@@ -216,9 +216,9 @@ void BplusTreeSec::saveToFile(const string& filename) {
     if (file.is_open()) {
         saveTree(file, root);
         file.close();
-         cout << "Árvore salva com sucesso em " << filename << endl;
+        //  cout << "Árvore salva com sucesso em " << filename << endl;
     } else {
-         cout << "Erro ao abrir o arquivo." << endl;
+        //  cout << "Erro ao abrir o arquivo." << endl;
     }
 }
 
