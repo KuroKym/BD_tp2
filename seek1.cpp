@@ -12,8 +12,9 @@ Article findRecordByPosition(BplusTree bptree, int id, const std::string& bucket
 
     // Tentar localizar o registro no arquivo principal
     std::streampos pos = bptree.searchKey(id);  // Posição do registro a ser encontrado
-    file.seekg(pos);
-
+    std::cout << "Posição do registro: " << pos << std::endl;
+    
+    file.seekg(pos); // Posiciona-se no bloco correto
     Block current_block;
     file.read(reinterpret_cast<char*>(&current_block), sizeof(Block));
 
@@ -25,29 +26,29 @@ Article findRecordByPosition(BplusTree bptree, int id, const std::string& bucket
     }
 
     // Caso não encontrado, abrir o arquivo de overflow
+   
     std::ifstream overflow_file(overflow_filename, std::ios::binary);
     if (!overflow_file.is_open()) {
         std::cerr << "Erro ao abrir o arquivo de overflow para leitura!" << std::endl;
         throw std::runtime_error("Erro ao abrir o arquivo de overflow.");
     }
 
-    // Procurar no arquivo de overflow
-    while (true) {
-        overflow_file.read(reinterpret_cast<char*>(&current_block), sizeof(Block));
-        if (overflow_file.eof()) break;
-
-        // Buscar no bloco do arquivo de overflow
-        recordIndex = binarySearchInBlock(current_block, id);
-        if (recordIndex != -1) {
-            // Registro encontrado no arquivo de overflow
-            return current_block.records[recordIndex];
+    Article article;
+    while (overflow_file.read(reinterpret_cast<char*>(&article), sizeof(Article))) {
+        // blocks_read++;  // Incrementa o contador de blocos lidos
+        if (article.id == id) {
+            overflow_file.close();
+            return article;
         }
     }
+    
+
 
     // Se o laço termina, significa que não encontrou o registro
     std::cerr << "Registro com ID " << id << " não encontrado." << std::endl;
     throw std::runtime_error("Registro não encontrado.");
 }
+
 
 int main() {
     std::string bucket_filename = "articles.bin";

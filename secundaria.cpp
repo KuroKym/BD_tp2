@@ -365,6 +365,7 @@ void BplusTreeSec::loadFromFile(const std::string& filename) {
 // }
 
 std::streampos BplusTreeSec::searchKey(const std::string value) {
+    std::cout << "Iniciando busca pela chave: " << value << std::endl;
     NodeSec* currentNodeSec = search(value);
 
     // Remove as aspas de `value` para comparação
@@ -372,6 +373,7 @@ std::streampos BplusTreeSec::searchKey(const std::string value) {
     if (cleanedValue.front() == '"' && cleanedValue.back() == '"') {
         cleanedValue = cleanedValue.substr(1, cleanedValue.size() - 2);
     }
+    std::cout << "Valor limpo para busca: " << cleanedValue << std::endl;
 
     for (int i = 0; i < currentNodeSec->values.size(); i++) {
         // Remove as aspas de `currentNodeSec->values[i]`
@@ -379,12 +381,15 @@ std::streampos BplusTreeSec::searchKey(const std::string value) {
         if (cleanedCurrentValue.front() == '"' && cleanedCurrentValue.back() == '"') {
             cleanedCurrentValue = cleanedCurrentValue.substr(1, cleanedCurrentValue.size() - 2);
         }
+        std::cout << "Comparando com valor no nó: " << cleanedCurrentValue << std::endl;
 
         if (cleanedValue == cleanedCurrentValue) {
+            std::cout << "Chave encontrada: " << currentNodeSec->keys[i][0] << std::endl;
             return currentNodeSec->keys[i][0];
         }
     }
 
+    std::cout << "Chave não encontrada." << std::endl;
     return -1;
 }
 
@@ -394,12 +399,12 @@ std::streampos BplusTreeSec::searchKey(const std::string value) {
 //     // BplusTreeSec bptree(3);
 //     BplusTreeSec bpCarregada(3);
 //     // bptree.insert("Poster: Portable integral photography input/ output system using tablet PC and fly's eye lenses.", 1230);
-//     // bptree.saveToFile("indexSec.bin");
+//     // bptree.saveToFile("secIndex.bin");
 //     bpCarregada.loadFromFile("indexSec.bin");
 //     // bptree.loadFromFile("indexSec.bin");
 //     // bpCarregada.printTree(bpCarregada.root);
 //     // cout << "endereco: "<< bptree.searchKey("Poster: Portable integral photography input/ output system using tablet PC and fly's eye lenses.") << endl;
-//     // cout << "endereco: "<< bpCarregada.searchKey("Poster: Lifted road map view on windshield display.") << endl;
-//     // cout << "titulo: " << bpCarregada.searchKey("Poster: Real-time markerless kinect based finger tracking and hand gesture recognition for HCI.") << endl;
+//     // cout << "endereco: "<< bpCarregada.root->values[0] << endl;
+//     cout << "titulo: " << bpCarregada.search("MakeVR: A 3D world-building interface.")->values[0] << endl;
 //     return 0;
 // }

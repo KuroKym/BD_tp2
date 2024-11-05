@@ -5,7 +5,7 @@
 
 using namespace std;
 
-Article findRecordByPosition(BplusTreeSec bptree, const std::string titulo, const std::string& bucket_filename) {
+Article findRecordByPosition(BplusTreeSec bptree, const std::string titulo, const std::string& bucket_filename, const std::string& overflow_filename) {
     std::ifstream file(bucket_filename, std::ios::binary);
     if (!file.is_open()) {
         std::cerr << "Erro ao abrir o arquivo para leitura!" << std::endl;
@@ -24,25 +24,40 @@ Article findRecordByPosition(BplusTreeSec bptree, const std::string titulo, cons
     if (recordIndex != -1) {
         // Retorna o artigo encontrado
         return current_block.records[recordIndex];
-    } else {
-        std::cerr << "Registro com Titulo " << titulo << " não encontrado no bloco." << std::endl;
-        throw std::runtime_error("Registro não encontrado.");
+    } 
+
+    std::ifstream overflow_file("overflow.bin", std::ios::binary);
+    if(!overflow_file.is_open()){
+        std::cerr << "Erro ao abrir o arquivo de overflow para leitura!" << std::endl;
+        throw std::runtime_error("Erro ao abrir o arquivo de overflow.");
     }
+    
+    Article article;
+    while(overflow_file.read(reinterpret_cast<char*>(&article), sizeof(Article))){
+        if(article.title == titulo){
+            overflow_file.close();
+            return article;
+        }
+    }
+    // Se o laço termina, significa que não encontrou o registro
+    std::cerr << "Registro com ID " << titulo << " não encontrado." << std::endl;
+    throw std::runtime_error("Registro não encontrado.");
 }
 
 int main(){
     std::string bucket_filename = "articles.bin";
+    std::string overflow_filename = "overflow.bin";
     BplusTreeSec bptree(3); // Posição do registro a ser encontrado
     string titulo;  // ID do registro a ser encontrado
     std::cout << "Digite o titulo do registro a ser encontrado: ";
     std::getline(std::cin, titulo);
     bptree.loadFromFile("indexSec.bin");
 
-    cout<< bptree.searchKey(titulo)<< endl; 
+    cout<< "poster: "<< bptree.searchKey("Poster: Lifted road map view on windshield display.")<< endl; 
 
     try {
         // Encontrar o registro na posição especificada
-        Article found_article = findRecordByPosition(bptree, titulo, bucket_filename);
+        Article found_article = findRecordByPosition(bptree, titulo, bucket_filename, overflow_filename);
 
         // Imprimir os dados do registro encontrado
         std::cout << "Registro encontrado:" << std::endl;

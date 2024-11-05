@@ -369,7 +369,7 @@ std::streampos BplusTree::searchKey(int value){
 //     BplusTree bptree(3);
 //     bptree.loadFromFile("index.bin");
 //     bptree.printTree(bptree.root);
-//     std::streampos endereco = bptree.search(5)->keys[0][0];
-//     cout << "endereco: "<< bptree.searchKey(4) << endl;
+//     // cout << bptree.search(4333)->values[0]<< endl;
+//     cout << "endereco: "<< bptree.searchKey(1549146) << endl;
 //     return 0;
 // }

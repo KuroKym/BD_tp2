@@ -147,55 +147,6 @@ std::vector<Article> processarCSV(const std::string& file_path) {
     return articles;
 }
 
-// Função para inserir um registro em um bucket
-void insertRecord(const Article& article, const std::string& bucket_filename, const std::string& overflow_filename) {
-    std::fstream file(bucket_filename, std::ios::binary | std::ios::in | std::ios::out);
-    if (!file.is_open()) {
-        std::cerr << "Erro ao abrir o arquivo de buckets para inserção!" << std::endl;
-        return;
-    }
-
-    int bucket = hashFunction(article.id);
-    std::streampos bucket_start = bucket * BLOCKS_PER_BUCKET * BLOCK_SIZE;
-
-    bool inserted = false;
-
-    for (int block = 0; block < BLOCKS_PER_BUCKET; ++block) {
-        std::streampos block_pos = bucket_start + static_cast<std::streamoff>(block * BLOCK_SIZE);
-        file.seekg(block_pos);
-
-        // Ler o bloco completo
-        Block current_block;
-        file.read(reinterpret_cast<char*>(&current_block), sizeof(Block));
-
-        if (!current_block.isFull()) {
-            // Inserir o artigo neste bloco
-            current_block.addArticle(article);
-
-            // Voltar e gravar o bloco atualizado
-            file.seekp(block_pos);
-            file.write(reinterpret_cast<const char*>(&current_block), sizeof(Block));
-
-            inserted = true;
-            break;
-        }
-    }
-
-    file.close();
-
-    if (!inserted) {
-        // Inserção no arquivo de overflow
-        std::ofstream overflow_file(overflow_filename, std::ios::binary | std::ios::app);
-        if (!overflow_file.is_open()) {
-            std::cerr << "Erro ao abrir o arquivo de overflow!" << std::endl;
-            return;
-        }
-
-        overflow_file.write(reinterpret_cast<const char*>(&article), sizeof(Article));
-        overflow_file.close();
-        //std::cerr << "Bucket cheio. Registro inserido no overflow." << std::endl;
-    }
-}
 
 
 // Função para inserir um registro em um bucket e retornar a posição onde foi inserido
@@ -263,8 +214,8 @@ void gravarArtigosComHash(const std::vector<Article>& articles, const std::strin
         if (pos != -1) {  // Verifique se a posição não é -1
             bptree.insert(article.id, pos);  // Insere o ID e a posição na B+ Tree
             bptreeSec.insert(article.title, pos);
-            std::cout << "Artigo " << article.id << " inserido na B+ Tree primaria na posição " << pos << std::endl;
-            std::cout << "Artigo "  << article.title<< " inserido na B+ Tree secundaria na posição " << pos << std::endl;
+            // std::cout << "Artigo " << article.id << " inserido na B+ Tree primaria na posição " << pos << std::endl;
+            // std::cout << "Artigo "  << article.title<< " inserido na B+ Tree secundaria na posição " << pos << std::endl;
         }
 
         count++;
