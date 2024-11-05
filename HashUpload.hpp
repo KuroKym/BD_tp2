@@ -1,3 +1,6 @@
+#ifndef HASH_H
+#define HASH_H
+
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -5,6 +8,11 @@
 #include <string>
 #include <vector>
 
+
+#define TITULO 300
+#define AUTOR 150
+#define UPDATED 20
+#define SNIPPET 1024
 struct BlockHeader {
     int recordCount;
 };
@@ -12,12 +20,12 @@ struct BlockHeader {
 // Estrutura que representa um artigo
 struct Article {
     int id;
-    char title[300];
+    char title[TITULO];
     int year;
-    char authors[150];
+    char authors[AUTOR];
     int citations;
-    char updated_at[20]; // Armazenar a data como string fixa
-    char snippet[1000];
+    char updated_at[UPDATED]; // Armazenar a data como string fixa
+    char snippet[SNIPPET];
 
     // Função para imprimir os dados do artigo
     void print() const {
@@ -33,6 +41,8 @@ constexpr size_t NUM_BUCKETS = 100;
 constexpr size_t BLOCK_SIZE = 4096; // 4KB por bloco
 constexpr size_t RECORDS_PER_BLOCK = BLOCK_SIZE / sizeof(Article);
 constexpr size_t BLOCKS_PER_BUCKET = 10;
+
+#define RECORDS = RECORDS_PER_BLOCK
 struct Block {
     BlockHeader header;  // Cabeçalho do bloco, que inclui a contagem de registros
     Article records[RECORDS_PER_BLOCK];  // Array de registros do bloco (máximo RECORDS_PER_BLOCK artigos)
@@ -69,3 +79,6 @@ std::vector<Article> processarCSV(const std::string& file_path);
 void insertRecord(const Article& article, const std::string& bucket_filename, const std::string& overflow_filename);
 void gravarArtigosComHash(const std::vector<Article>& articles, const std::string& bucket_filename, const std::string& overflow_filename);
 std::vector<Article> readBucket(int bucket, const std::string& bucket_filename, const std::string& overflow_filename);
+int binarySearchInBlock(const Block& block, int id);
+int buscarPorTitulo(const Block& block, const std::string& title);
+#endif

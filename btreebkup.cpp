@@ -300,56 +300,56 @@ void BplusTree::loadFromFile(const string& filename, int order) {
 
 
 
-int main() {
-    int order = 3;
-    BplusTree bplustree(order);
-    BplusTree bplustree2(order);
+// int main() {
+//     int order = 3;
+//     BplusTree bplustree(order);
+//     BplusTree bplustree2(order);
 
-    int id = 1;
-    void* blockPtr = reinterpret_cast<void*>(0x1000);
-    bplustree.insert(id, blockPtr);
-    id = 2;
-    blockPtr = reinterpret_cast<void*>(0x1200);
-    bplustree.insert(id, blockPtr);
-    id = 3;
-    blockPtr = reinterpret_cast<void*>(0x1400); // Example block pointer
-    bplustree.insert(id, blockPtr);
-    id = 4;
-    blockPtr = reinterpret_cast<void*>(0x1600); // Example block pointer
-    bplustree.insert(id, blockPtr);
-    id = 5;
-    blockPtr = reinterpret_cast<void*>(0x1800); // Example block pointer
-    bplustree.insert(id, blockPtr);
-    id = 6;
-    blockPtr = reinterpret_cast<void*>(0x2000); // Example block pointer
-    bplustree.insert(id, blockPtr);
-    id = 7;
-    blockPtr = reinterpret_cast<void*>(0x2200); // Example block pointer
-    bplustree.insert(id, blockPtr);
-    id = 8;
-    blockPtr = reinterpret_cast<void*>(0x2400); // Example block pointer
-    bplustree.insert(id, blockPtr);
-    id = 9;
-    blockPtr = reinterpret_cast<void*>(0x2600); // Example block pointer
-    bplustree.insert(id, blockPtr);
-    id = 10;
-    blockPtr = reinterpret_cast<void*>(0x2800); // Example block pointer
-    bplustree.insert(id, blockPtr);
+//     int id = 1;
+//     void* blockPtr = reinterpret_cast<void*>(0x1000);
+//     bplustree.insert(id, blockPtr);
+//     id = 2;
+//     blockPtr = reinterpret_cast<void*>(0x1200);
+//     bplustree.insert(id, blockPtr);
+//     id = 3;
+//     blockPtr = reinterpret_cast<void*>(0x1400); // Example block pointer
+//     bplustree.insert(id, blockPtr);
+//     id = 4;
+//     blockPtr = reinterpret_cast<void*>(0x1600); // Example block pointer
+//     bplustree.insert(id, blockPtr);
+//     id = 5;
+//     blockPtr = reinterpret_cast<void*>(0x1800); // Example block pointer
+//     bplustree.insert(id, blockPtr);
+//     id = 6;
+//     blockPtr = reinterpret_cast<void*>(0x2000); // Example block pointer
+//     bplustree.insert(id, blockPtr);
+//     id = 7;
+//     blockPtr = reinterpret_cast<void*>(0x2200); // Example block pointer
+//     bplustree.insert(id, blockPtr);
+//     id = 8;
+//     blockPtr = reinterpret_cast<void*>(0x2400); // Example block pointer
+//     bplustree.insert(id, blockPtr);
+//     id = 9;
+//     blockPtr = reinterpret_cast<void*>(0x2600); // Example block pointer
+//     bplustree.insert(id, blockPtr);
+//     id = 10;
+//     blockPtr = reinterpret_cast<void*>(0x2800); // Example block pointer
+//     bplustree.insert(id, blockPtr);
 
-    bplustree.saveToFile("index.bin");
-    bplustree2.loadFromFile("index.bin", order);
-    //bplustree.printTree(bplustree.root);
-    //cout << "\n" << endl;
-    //cout << bplustree2.root->children[1]->values[0] << endl;
+//     bplustree.saveToFile("index.bin");
+//     bplustree2.loadFromFile("index.bin", order);
+//     //bplustree.printTree(bplustree.root);
+//     //cout << "\n" << endl;
+//     //cout << bplustree2.root->children[1]->values[0] << endl;
 
-    // std::cout << "Estrutura da B+Tree (Ordem 3): " << std::endl;
-    // bplustree2.printTree(bplustree2.root);
-    bplustree2.printLeaves();
-    cout << endl;
-    cout << "começando a busca" << endl;
-    cout << "Buscando chave do id 3: " << bplustree.search(3)->keys[0][0]<< endl;
-    cout << "Buscando chave do id 3: " << bplustree2.search(3)->keys[0][0]<< endl;
+//     // std::cout << "Estrutura da B+Tree (Ordem 3): " << std::endl;
+//     // bplustree2.printTree(bplustree2.root);
+//     bplustree2.printLeaves();
+//     cout << endl;
+//     cout << "começando a busca" << endl;
+//     cout << "Buscando chave do id 3: " << bplustree.search(3)->keys[0][0]<< endl;
+//     cout << "Buscando chave do id 3: " << bplustree2.search(3)->keys[0][0]<< endl;
 
 
-    return 0;
-}
+//     return 0;
+// }

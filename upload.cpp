@@ -6,8 +6,9 @@
 #include <ctime>
 #include <cstring>
 #include <algorithm>
-#include "HashUpload.h"
-#include "btree.cpp"
+#include "HashUpload.hpp"
+#include "primaria.hpp"
+#include "secundaria.hpp"
 
 // Função de hash simples
 int hashFunction(int id) {
@@ -198,11 +199,11 @@ void insertRecord(const Article& article, const std::string& bucket_filename, co
 
 
 // Função para inserir um registro em um bucket e retornar a posição onde foi inserido
-void* insertRecordAndGetPosition(const Article& article, const std::string& bucket_filename, const std::string& overflow_filename) {
+std::streampos insertRecordAndGetPosition(const Article& article, const std::string& bucket_filename, const std::string& overflow_filename) {
     std::fstream file(bucket_filename, std::ios::binary | std::ios::in | std::ios::out);
     if (!file.is_open()) {
         std::cerr << "Erro ao abrir o arquivo de buckets para inserção!" << std::endl;
-        return nullptr;
+        return -1;  // Indica erro ao abrir o arquivo
     }
 
     int bucket = hashFunction(article.id);
@@ -226,9 +227,7 @@ void* insertRecordAndGetPosition(const Article& article, const std::string& buck
 
             file.close();
 
-            // Converta a posição para um tipo int e retorne o ponteiro
-            int* pos = new int(static_cast<int>(block_pos));
-            return static_cast<void*>(pos);  // Retorna a posição onde o artigo foi inserido como void*
+            return block_pos;  // Retorna a posição onde o artigo foi inserido
         }
     }
 
@@ -238,31 +237,34 @@ void* insertRecordAndGetPosition(const Article& article, const std::string& buck
     std::ofstream overflow_file(overflow_filename, std::ios::binary | std::ios::app);
     if (!overflow_file.is_open()) {
         std::cerr << "Erro ao abrir o arquivo de overflow!" << std::endl;
-        return nullptr;
+        return -1;  // Indica erro ao abrir o arquivo de overflow
     }
 
     std::streampos overflow_pos = overflow_file.tellp();  // Posição antes de escrever o artigo
     overflow_file.write(reinterpret_cast<const char*>(&article), sizeof(Article));
     overflow_file.close();
 
-    int* pos = new int(static_cast<int>(overflow_pos));
-    return static_cast<void*>(pos);  // Retorna a posição do artigo no overflow como void*
+    return overflow_pos;  // Retorna a posição do artigo no overflow
 }
+
 
 void gravarArtigosComHash(const std::vector<Article>& articles, const std::string& bucket_filename, const std::string& overflow_filename) {
     // Inicializa a B+ Tree
     BplusTree bptree(3);  // O grau é (3)
+    BplusTreeSec bptreeSec(3);
 
     // Itera sobre todos os artigos e insere cada um no bucket correspondente
     int count = 0;
     for (const auto& article : articles) {
         // Inserir o artigo no bucket correto e obter a posição onde ele foi inserido
-        void* pos = insertRecordAndGetPosition(article, bucket_filename, overflow_filename);
+        std::streampos pos = insertRecordAndGetPosition(article, bucket_filename, overflow_filename);
 
         // Inserir o ID e a posição na B+ Tree
-        if (pos != nullptr) {  // Verifique se a posição não é nula
+        if (pos != -1) {  // Verifique se a posição não é -1
             bptree.insert(article.id, pos);  // Insere o ID e a posição na B+ Tree
-            std::cout << "Artigo " << article.id << " inserido na B+ Tree na posição " << pos << std::endl;
+            bptreeSec.insert(article.title, pos);
+            std::cout << "Artigo " << article.id << " inserido na B+ Tree primaria na posição " << pos << std::endl;
+            std::cout << "Artigo "  << article.title<< " inserido na B+ Tree secundaria na posição " << pos << std::endl;
         }
 
         count++;
@@ -273,6 +275,7 @@ void gravarArtigosComHash(const std::vector<Article>& articles, const std::strin
 
     // Salva a B+ Tree no arquivo de índice (reescreve a árvore no arquivo)
     bptree.saveToFile("index.bin");
+    bptree.saveToFile("indexSec.bin");
 }
 
 
@@ -321,4 +324,42 @@ std::vector<Article> readBucket(int bucket, const std::string& bucket_filename, 
     }
 
     return articles;
+}
+
+
+// Função auxiliar para realizar busca binária dentro de um bloco de registros
+int binarySearchInBlock(const Block& block, int id) {
+    int low = 0;
+    int high = block.header.recordCount - 1;
+
+    while (low <= high) {
+        int mid = (low + high) / 2;
+        if (block.records[mid].id == id) {
+            return mid;  // Registro encontrado
+        }
+        if (block.records[mid].id < id) {
+            low = mid + 1;
+        } else {
+            high = mid - 1;
+        }
+    }
+    return -1;  // Registro não encontrado
+}
+
+int buscarPorTitulo(const Block& block, const std::string& title) {
+    int low = 0;
+    int high = block.header.recordCount - 1;
+
+    while (low <= high) {
+        int mid = (low + high) / 2;
+        if (block.records[mid].title == title) {
+            return mid;  // Retorna o índice do registro encontrado
+        }
+        if (block.records[mid].title < title) {
+            low = mid + 1;
+        } else {
+            high = mid - 1;
+        }
+    }
+    return -1;  // Retorna -1 para indicar que o registro não foi encontrado
 }

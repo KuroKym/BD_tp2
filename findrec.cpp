@@ -1,4 +1,4 @@
-#include "HashUpload.h" // Include the header file where hashFunction is defined
+#include "HashUpload.hpp" // Include the header file where hashFunction is defined
 
 
 // Função para calcular o número total de blocos no arquivo
@@ -17,24 +17,7 @@ int calculateTotalBlocks(const std::string& filename) {
     return static_cast<int>(file_size / BLOCK_SIZE);
 }
 
-// Função auxiliar para realizar busca binária dentro de um bloco de registros
-int binarySearchInBlock(const Block& block, int id) {
-    int low = 0;
-    int high = block.header.recordCount - 1;
 
-    while (low <= high) {
-        int mid = (low + high) / 2;
-        if (block.records[mid].id == id) {
-            return mid;  // Registro encontrado
-        }
-        if (block.records[mid].id < id) {
-            low = mid + 1;
-        } else {
-            high = mid - 1;
-        }
-    }
-    return -1;  // Registro não encontrado
-}
 
 void findRecordById(int id, const std::string& bucket_filename, const std::string& overflow_filename) {
     int bucket = hashFunction(id);

@@ -1,15 +1,16 @@
-#include "primaria.hpp"
+#include "secundaria.hpp"
 #include "HashUpload.hpp"
 #include <iostream>
 #include <fstream>
- 
-Article findRecordByPosition(BplusTree bptree, int id, const std::string& bucket_filename) {
+using namespace std;
+
+Article findRecordByPosition(BplusTreeSec bptree, const std::string titulo, const std::string& bucket_filename) {
     std::ifstream file(bucket_filename, std::ios::binary);
     if (!file.is_open()) {
         std::cerr << "Erro ao abrir o arquivo para leitura!" << std::endl;
         throw std::runtime_error("Erro ao abrir o arquivo.");
     }
-    std::streampos pos = bptree.searchKey(id);  // Posição do registro a ser encontrado
+    std::streampos pos = bptree.searchKey(titulo);  // Posição do registro a ser encontrado
     // Mover o ponteiro do arquivo para a posição especificada
     file.seekg(pos);
     
@@ -17,28 +18,28 @@ Article findRecordByPosition(BplusTree bptree, int id, const std::string& bucket
     Block current_block;
     file.read(reinterpret_cast<char*>(&current_block), sizeof(Block));
 
-    // Realizar uma busca binária dentro do bloco para encontrar o registro com o `id` correto
-    int recordIndex = binarySearchInBlock(current_block, id);
+    // Realizar uma busca binária dentro do bloco para encontrar o registro com o `titulo` correto
+    int recordIndex = buscarPorTitulo(current_block, titulo);
     if (recordIndex != -1) {
         // Retorna o artigo encontrado
         return current_block.records[recordIndex];
     } else {
-        std::cerr << "Registro com ID " << id << " não encontrado no bloco." << std::endl;
+        std::cerr << "Registro com Titulo " << titulo << " não encontrado no bloco." << std::endl;
         throw std::runtime_error("Registro não encontrado.");
     }
 }
 
 int main(){
     std::string bucket_filename = "articles.bin";
-    BplusTree bptree(3); // Posição do registro a ser encontrado
-    int id;  // ID do registro a ser encontrado
+    BplusTreeSec bptree(3); // Posição do registro a ser encontrado
+    string titulo;  // ID do registro a ser encontrado
     cout << "Digite o ID do registro a ser encontrado: ";
-    cin >> id;
+    cin >> titulo;
     bptree.loadFromFile("index.bin");
 
     try {
         // Encontrar o registro na posição especificada
-        Article found_article = findRecordByPosition(bptree, id, bucket_filename);
+        Article found_article = findRecordByPosition(bptree, titulo, bucket_filename);
 
         // Imprimir os dados do registro encontrado
         std::cout << "Registro encontrado:" << std::endl;
