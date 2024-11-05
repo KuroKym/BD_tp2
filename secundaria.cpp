@@ -169,10 +169,13 @@ void BplusTreeSec::saveTree(ofstream& file, NodeSec* nodeseNodeSec) {
     file.write((char*)&numValues, sizeof(numValues));
     cout << "Salvando nó: " << (nodeseNodeSec->check_leaf ? "Folha" : "Interno") << " com " << numValues << " valores." << endl;
 
-    for (string value : nodeseNodeSec->values) {
-        file.write((char*)&value, sizeof(value));
-        cout << "Salvando valor: " << value << endl;
+    for (const std::string& value : nodeseNodeSec->values) {
+        int valueSize = value.size();
+        file.write((char*)&valueSize, sizeof(valueSize)); // Salva o tamanho da string
+        file.write(value.c_str(), valueSize); // Salva o conteúdo da string
+        std::cout << "Salvando valor: " << value << std::endl;
     }
+
 
     int numKeys = nodeseNodeSec->keys.size();
     file.write((char*)&numKeys, sizeof(numKeys));
@@ -222,14 +225,14 @@ void BplusTreeSec::saveToFile(const string& filename) {
 // Função para carregar a árvore de um arquivo
 void BplusTreeSec::loadTree(ifstream& file, NodeSec*& nodeseNodeSec, int order) {
     if (!file.is_open() || file.eof()) {
-        std::cout << "Arquivo não aberto ou EOF atingido. Encerrando carregamento." << std::endl;
+        // std::cout << "Arquivo não aberto ou EOF atingido. Encerrando carregamento." << std::endl;
         return;
     }
 
     // Ler informações do nó
     bool isLeaf;
     file.read((char*)&isLeaf, sizeof(isLeaf));
-    std::cout << "Carregando nó: " << (isLeaf ? "Folha" : "Interno") << std::endl;
+    // std::cout << "Carregando nó: " << (isLeaf ? "Folha" : "Interno") << std::endl;
 
     nodeseNodeSec = new NodeSec(order);
     nodeseNodeSec->check_leaf = isLeaf;
@@ -237,12 +240,19 @@ void BplusTreeSec::loadTree(ifstream& file, NodeSec*& nodeseNodeSec, int order) 
     int numValues;
     file.read((char*)&numValues, sizeof(numValues));
     nodeseNodeSec->values.resize(numValues);
-    std::cout << "Número de valores no nó: " << numValues << std::endl;
+    // std::cout << "Número de valores no nó: " << numValues << std::endl;
 
     for (int i = 0; i < numValues; ++i) {
-        file.read((char*)&nodeseNodeSec->values[i], sizeof(int));
-        std::cout << "Valor[" << i << "]: " << nodeseNodeSec->values[i] << std::endl;
+        int valueSize;
+        file.read((char*)&valueSize, sizeof(valueSize)); // Lê o tamanho da string
+
+        std::string value(valueSize, '\0'); // Cria uma string de tamanho `valueSize`
+        file.read(&value[0], valueSize); // Lê o conteúdo da string
+        nodeseNodeSec->values[i] = value; // Armazena o valor lido no nó
+
+        // std::cout << "Valor[" << i << "]: " << nodeseNodeSec->values[i] << std::endl;
     }
+
 
     int numKeys;
     file.read((char*)&numKeys, sizeof(numKeys));
@@ -255,6 +265,7 @@ void BplusTreeSec::loadTree(ifstream& file, NodeSec*& nodeseNodeSec, int order) 
             long keyAddr;
             file.read((char*)&keyAddr, sizeof(keyAddr));
             nodeseNodeSec->keys[i][j] = static_cast<std::streampos>(keyAddr);
+            // cout << "Chave[" << i << "][" << j << "]: " << keyAddr << endl;
         }
     }
 
@@ -262,18 +273,18 @@ void BplusTreeSec::loadTree(ifstream& file, NodeSec*& nodeseNodeSec, int order) 
         long nextKeyAddr;
         file.read((char*)&nextKeyAddr, sizeof(nextKeyAddr));
         nodeseNodeSec->nextKey = reinterpret_cast<NodeSec*>(nextKeyAddr);
-        std::cout << "Endereço do próximo nó chave: " << nextKeyAddr << std::endl;
+        // std::cout << "Endereço do próximo nó chave: " << nextKeyAddr << std::endl;
     } else {
         int numChildren;
         file.read((char*)&numChildren, sizeof(numChildren));
         nodeseNodeSec->children.resize(numChildren);
-        std::cout << "Número de filhos: " << numChildren << std::endl;
+        // std::cout << "Número de filhos: " << numChildren << std::endl;
 
         for (int i = 0; i < numChildren; ++i) {
             long childAddr;
             file.read((char*)&childAddr, sizeof(childAddr));
             nodeseNodeSec->children[i] = reinterpret_cast<NodeSec*>(childAddr);
-            std::cout << "Endereço do filho[" << i << "]: " << childAddr << std::endl;
+            // std::cout << "Endereço do filho[" << i << "]: " << childAddr << std::endl;
         }
     }
 
@@ -291,9 +302,9 @@ void BplusTreeSec::loadFromFile(const std::string& filename) {
     if (file.is_open()) {
         loadTree(file, root, order);
         file.close();
-        cout << "Árvore carregada com sucesso de " << filename << endl;
+        // cout << "Árvore carregada com sucesso de " << filename << endl;
     } else {
-        cout << "Erro ao abrir o arquivo." << endl;
+        // cout << "Erro ao abrir o arquivo." << endl;
     }
 }
 
@@ -353,26 +364,42 @@ void BplusTreeSec::loadFromFile(const std::string& filename) {
 //     return 0;
 // }
 
-std::streampos BplusTreeSec::searchKey(const std::string value){
+std::streampos BplusTreeSec::searchKey(const std::string value) {
     NodeSec* currentNodeSec = search(value);
-    for(int i = 0; i < currentNodeSec->values.size(); i++){
-        if(value == currentNodeSec->values[i]){
+
+    // Remove as aspas de `value` para comparação
+    std::string cleanedValue = value;
+    if (cleanedValue.front() == '"' && cleanedValue.back() == '"') {
+        cleanedValue = cleanedValue.substr(1, cleanedValue.size() - 2);
+    }
+
+    for (int i = 0; i < currentNodeSec->values.size(); i++) {
+        // Remove as aspas de `currentNodeSec->values[i]`
+        std::string cleanedCurrentValue = currentNodeSec->values[i];
+        if (cleanedCurrentValue.front() == '"' && cleanedCurrentValue.back() == '"') {
+            cleanedCurrentValue = cleanedCurrentValue.substr(1, cleanedCurrentValue.size() - 2);
+        }
+
+        if (cleanedValue == cleanedCurrentValue) {
             return currentNodeSec->keys[i][0];
         }
     }
+
     return -1;
 }
 
 
-int main(){
-    BplusTreeSec bptree(3);
-    BplusTreeSec bpCarregada(3);
-    bptree.insert("Poster: Portable integral photography input/ output system using tablet PC and fly's eye lenses.", 1230);
-    bptree.saveToFile("indexSec.bin");
-    bpCarregada.loadFromFile("indexSec.bin");
-    // bptree.loadFromFile("indexSec.bin");
-    bpCarregada.printTree(bptree.root);
-    // cout << "endereco: "<< bptree.searchKey("Poster: Portable integral photography input/ output system using tablet PC and fly's eye lenses.") << endl;
-    cout << "titulo: " << bpCarregada.root->values[0] << endl;
-    return 0;
-}
+
+// int main(){
+//     // BplusTreeSec bptree(3);
+//     BplusTreeSec bpCarregada(3);
+//     // bptree.insert("Poster: Portable integral photography input/ output system using tablet PC and fly's eye lenses.", 1230);
+//     // bptree.saveToFile("indexSec.bin");
+//     bpCarregada.loadFromFile("indexSec.bin");
+//     // bptree.loadFromFile("indexSec.bin");
+//     // bpCarregada.printTree(bpCarregada.root);
+//     // cout << "endereco: "<< bptree.searchKey("Poster: Portable integral photography input/ output system using tablet PC and fly's eye lenses.") << endl;
+//     // cout << "endereco: "<< bpCarregada.searchKey("Poster: Lifted road map view on windshield display.") << endl;
+//     // cout << "titulo: " << bpCarregada.searchKey("Poster: Real-time markerless kinect based finger tracking and hand gesture recognition for HCI.") << endl;
+//     return 0;
+// }

@@ -1,5 +1,5 @@
 #include "primaria.hpp"
-#include "HashUpload.hpp"
+#include "hash.hpp"
 #include <iostream>
 #include <fstream>
  

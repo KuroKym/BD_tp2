@@ -1,5 +1,5 @@
 #include "secundaria.hpp"
-#include "HashUpload.hpp"
+#include "hash.hpp"
 #include <iostream>
 #include <fstream>
 using namespace std;
@@ -33,9 +33,11 @@ int main(){
     std::string bucket_filename = "articles.bin";
     BplusTreeSec bptree(3); // Posição do registro a ser encontrado
     string titulo;  // ID do registro a ser encontrado
-    cout << "Digite o ID do registro a ser encontrado: ";
-    cin >> titulo;
-    bptree.loadFromFile("index.bin");
+    std::cout << "Digite o titulo do registro a ser encontrado: ";
+    std::getline(std::cin, titulo);
+    bptree.loadFromFile("indexSec.bin");
+
+    cout<< bptree.searchKey(titulo)<< endl; 
 
     try {
         // Encontrar o registro na posição especificada
